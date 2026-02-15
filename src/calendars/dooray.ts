@@ -118,50 +118,34 @@ export class DoorayCalendarClient implements CalendarClient {
   }
 
   /**
-   * Dooray의 **모든** 캘린더(내 캘린더 + 공유 캘린더)에서
-   * 지정 기간의 이벤트를 조회합니다.
-   *
-   * 다른 사람/공유 캘린더 이벤트에는 isOwnCalendar=false가 설정됩니다.
+   * Dooray 내 캘린더에서 지정 기간의 이벤트를 조회합니다.
    */
   async getEvents(from: string, to: string): Promise<CalendarEvent[]> {
     await this.ensureInitialized();
 
     const fromTime = new Date(from).getTime();
     const toTime = new Date(to).getTime();
-    const allEvents: CalendarEvent[] = [];
+    const calName = this.primaryCalendarName ?? "내 캘린더";
 
-    for (const cal of this.allCalendars) {
-      const calName = cal.displayName ?? cal.url;
-      const isOwn =
-        this.primaryCalendarName != null &&
-        calName === this.primaryCalendarName;
+    const calendarObjects = await this.davClient.fetchCalendarObjects({
+      calendar: this.calendarObj,
+    });
 
-      try {
-        const calendarObjects = await this.davClient.fetchCalendarObjects({
-          calendar: cal,
-        });
+    console.log(
+      `[dooray] 캘린더 "${calName}": ${calendarObjects.length}개 객체`
+    );
 
-        console.log(
-          `[dooray] 캘린더 "${calName}": ${calendarObjects.length}개 객체 ${isOwn ? "(내 캘린더)" : "(공유)"}`
-        );
+    const events = calendarObjects
+      .map((obj: any) => this.parseICalToEvent(obj, calName, true))
+      .filter((evt: CalendarEvent | null): evt is CalendarEvent => {
+        if (!evt) return false;
+        const eventStart = new Date(evt.startTime).getTime();
+        const eventEnd = new Date(evt.endTime).getTime();
+        return eventEnd >= fromTime && eventStart <= toTime;
+      });
 
-        const events = calendarObjects
-          .map((obj: any) => this.parseICalToEvent(obj, calName, isOwn))
-          .filter((evt: CalendarEvent | null): evt is CalendarEvent => {
-            if (!evt) return false;
-            const eventStart = new Date(evt.startTime).getTime();
-            const eventEnd = new Date(evt.endTime).getTime();
-            return eventEnd >= fromTime && eventStart <= toTime;
-          });
-
-        allEvents.push(...events);
-      } catch (err) {
-        console.error(`[dooray] 캘린더 "${calName}" 조회 실패:`, err);
-      }
-    }
-
-    console.log(`[dooray] 총 ${allEvents.length}개 이벤트 (전체 캘린더)`);
-    return allEvents;
+    console.log(`[dooray] ${events.length}개 이벤트 조회 완료`);
+    return events;
   }
 
   /**
