@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { SyncEngine } from "./sync/engine";
 import { DoorayCalendarClient } from "./calendars/dooray";
 import { GoogleCalendarClient } from "./calendars/google";

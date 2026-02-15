@@ -19,11 +19,21 @@ export class DoorayCalendarClient implements CalendarClient {
   private readonly headers: Record<string, string>;
 
   constructor(private config: DoorayConfig) {
-    this.baseUrl = "https://api.dooray.com";
+    // tenant ID가 있으면 tenant 기반 URL, 없으면 기본 URL
+    this.baseUrl = config.tenantId
+      ? `https://${config.tenantId}.dooray.com`
+      : "https://api.dooray.com";
     this.headers = {
       Authorization: `dooray-api ${config.apiToken}`,
       "Content-Type": "application/json",
     };
+
+    // 디버그: 토큰 로드 확인 (앞 8자만 표시)
+    const tokenPreview = config.apiToken
+      ? `${config.apiToken.slice(0, 8)}...`
+      : "(비어있음)";
+    console.log(`[dooray] API base: ${this.baseUrl}`);
+    console.log(`[dooray] Token: ${tokenPreview}`);
   }
 
   /**
@@ -132,22 +142,49 @@ export class DoorayCalendarClient implements CalendarClient {
 
   /** Dooray 캘린더 목록 조회 */
   private async getCalendars(): Promise<{ id: string; name: string }[]> {
-    const response = await fetch(`${this.baseUrl}/calendar/v1/calendars`, {
-      method: "GET",
-      headers: this.headers,
-    });
+    // 여러 가능한 엔드포인트를 시도
+    const endpoints = [
+      `${this.baseUrl}/calendar/v1/calendars`,
+      `https://api.dooray.com/calendar/v1/calendars`,
+      `https://api.dooray.com/calendar/v1/calendars?memberId=${this.config.tenantId}`,
+    ];
 
-    if (!response.ok) {
-      throw new Error(`Dooray 캘린더 목록 조회 실패: ${response.status}`);
+    for (const url of endpoints) {
+      console.log(`[dooray] 캘린더 조회 시도: ${url}`);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: this.headers,
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as any;
+        console.log(`[dooray] 캘린더 응답:`, JSON.stringify(data).slice(0, 500));
+        const calendars = data.result ?? data.data ?? [];
+
+        const result = (Array.isArray(calendars) ? calendars : [calendars]).map(
+          (cal: any) => ({
+            id: cal.id ?? cal.calendarId ?? "",
+            name: cal.name ?? cal.summary ?? cal.displayName ?? "Untitled",
+          })
+        );
+
+        if (result.length > 0) {
+          console.log(
+            `[dooray] 캘린더 ${result.length}개 발견: ${result.map((c: any) => c.name).join(", ")}`
+          );
+          return result;
+        }
+      } else {
+        const errorBody = await response.text();
+        console.error(
+          `[dooray] ${url} 실패: ${response.status} — ${errorBody.slice(0, 300)}`
+        );
+      }
     }
 
-    const data = (await response.json()) as any;
-    const calendars = data.result ?? [];
-
-    return calendars.map((cal: any) => ({
-      id: cal.id,
-      name: cal.name ?? cal.summary ?? "Untitled",
-    }));
+    throw new Error(
+      "Dooray 캘린더 목록 조회 실패: 모든 엔드포인트에서 실패했습니다. API 토큰과 tenant ID를 확인하세요."
+    );
   }
 
   /** 특정 캘린더의 이벤트 조회 */
