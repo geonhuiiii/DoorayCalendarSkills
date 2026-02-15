@@ -168,8 +168,16 @@ export class GoogleCalendarClient implements CalendarClient {
       body.start = { date: event.startTime.split("T")[0] };
       body.end = { date: event.endTime.split("T")[0] };
     } else {
-      body.start = { dateTime: event.startTime };
-      body.end = { dateTime: event.endTime };
+      // Google API는 dateTime에 Z(UTC)가 없으면 timeZone 필수
+      const needsTz = !event.startTime.endsWith("Z") && !event.startTime.includes("+");
+      body.start = {
+        dateTime: event.startTime,
+        ...(needsTz && { timeZone: "Asia/Seoul" }),
+      };
+      body.end = {
+        dateTime: event.endTime,
+        ...(needsTz && { timeZone: "Asia/Seoul" }),
+      };
     }
 
     if (event.recurrence) {
