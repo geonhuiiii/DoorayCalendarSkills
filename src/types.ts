@@ -83,17 +83,28 @@ export interface CalendarClient {
   deleteEvent(targetId: string): Promise<void>;
 }
 
+/**
+ * Dooray 클라우드 환경
+ * - public:     민간 클라우드       (dooray.com)
+ * - gov:        공공 클라우드       (gov-dooray.com)
+ * - gov-kr:     공공 업무망 클라우드 (gov-dooray.co.kr)
+ * - finance:    금융 클라우드       (dooray.co.kr)
+ */
+export type DoorayCloud = "public" | "gov" | "gov-kr" | "finance";
+
 /** Dooray 설정 */
 export interface DoorayConfig {
+  /** Dooray 클라우드 환경 (기본값: gov) */
+  cloud?: DoorayCloud;
   /** Dooray 테넌트 ID (Dooray URL의 서브도메인) */
   tenantId: string;
-  /** Dooray 로그인 이메일 */
+  /** Dooray CalDAV 아이디 (이메일) */
   username: string;
-  /** Dooray 비밀번호 */
+  /** Dooray CalDAV 전용 비밀번호 (Dooray 캘린더 > CalDAV 설정에서 발급) */
   password: string;
-  /** Dooray API 토큰 (CalDAV 비밀번호 대체 가능) */
+  /** Dooray API 토큰 (선택) */
   apiToken?: string;
-  /** Dooray 멤버 ID (CalDAV 사용자명 대체 가능) */
+  /** Dooray 멤버 ID (선택) */
   memberId?: string;
   /** 사용할 캘린더 이름 (선택, 미지정시 첫 번째 캘린더) */
   calendarName?: string;
