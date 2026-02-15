@@ -1,5 +1,5 @@
 {
-  "id": "dooray-calendar-sync",
+  "id": "openclaw-dooray-calendar-sync",
   "version": "1.0.0",
   "description": "Dooray·Apple·Google 캘린더 통합 동기화 스킬. Dooray 일정은 모든 캘린더에 공개로, 개인 캘린더 일정은 비공개로 동기화합니다.",
   "skills": ["src/skills"],
