@@ -85,7 +85,7 @@ export interface CalendarClient {
 
 /** Dooray 설정 */
 export interface DoorayConfig {
-  /** Dooray 테넌트 ID (예: opop757) */
+  /** Dooray 테넌트 ID (Dooray URL의 서브도메인) */
   tenantId: string;
   /** Dooray 로그인 이메일 */
   username: string;
