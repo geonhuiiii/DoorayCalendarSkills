@@ -127,6 +127,8 @@ if (require.main === module) {
       tenantId: process.env.DOORAY_TENANT_ID ?? "",
       username: process.env.DOORAY_USERNAME ?? "",
       password: process.env.DOORAY_PASSWORD ?? "",
+      apiToken: process.env.DOORAY_API_TOKEN,
+      memberId: process.env.DOORAY_MEMBER_ID,
       calendarName: process.env.DOORAY_CALENDAR_NAME,
     },
     google: process.env.GOOGLE_CLIENT_ID

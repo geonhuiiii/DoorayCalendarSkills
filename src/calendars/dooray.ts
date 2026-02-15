@@ -25,63 +25,141 @@ export class DoorayCalendarClient implements CalendarClient {
     console.log(`[dooray] CalDAV 모드로 연결합니다 (caldav.dooray.com)`);
   }
 
-  /** tsdav CalDAV 클라이언트 초기화 */
+  /** tsdav CalDAV 클라이언트 초기화 — 여러 인증 조합을 시도 */
   private async ensureInitialized(): Promise<void> {
     if (this.davClient) return;
 
     const { DAVClient } = await import("tsdav");
 
-    // Dooray CalDAV 서버 URL
-    const serverUrl = `https://caldav.dooray.com`;
+    // 여러 서버 URL 후보
+    const serverUrls = [
+      "https://caldav.dooray.com",
+      `https://caldav.dooray.com/${this.config.tenantId}`,
+    ];
 
-    console.log(`[dooray] CalDAV 서버: ${serverUrl}`);
+    // 여러 인증 조합 후보
+    const credentialCombos: { user: string; pass: string; label: string }[] = [];
 
-    this.davClient = new DAVClient({
-      serverUrl,
-      credentials: {
-        username: this.config.username,
-        password: this.config.password,
-      },
-      authMethod: "Basic",
-      defaultAccountType: "caldav",
+    // 1) 이메일 + 비밀번호
+    if (this.config.username && this.config.password) {
+      credentialCombos.push({
+        user: this.config.username,
+        pass: this.config.password,
+        label: "이메일+비밀번호",
+      });
+    }
+
+    // 2) 이메일 + API 토큰
+    if (this.config.username && this.config.apiToken) {
+      credentialCombos.push({
+        user: this.config.username,
+        pass: this.config.apiToken,
+        label: "이메일+API토큰",
+      });
+    }
+
+    // 3) 멤버ID + API 토큰
+    if (this.config.memberId && this.config.apiToken) {
+      credentialCombos.push({
+        user: this.config.memberId,
+        pass: this.config.apiToken,
+        label: "멤버ID+API토큰",
+      });
+    }
+
+    // 4) 멤버ID + 비밀번호
+    if (this.config.memberId && this.config.password) {
+      credentialCombos.push({
+        user: this.config.memberId,
+        pass: this.config.password,
+        label: "멤버ID+비밀번호",
+      });
+    }
+
+    // 중복 제거
+    const seen = new Set<string>();
+    const uniqueCombos = credentialCombos.filter((c) => {
+      const key = `${c.user}:${c.pass}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
 
-    await this.davClient.login();
-    console.log(`[dooray] CalDAV 로그인 성공`);
+    // 모든 조합 시도
+    for (const serverUrl of serverUrls) {
+      for (const cred of uniqueCombos) {
+        try {
+          console.log(
+            `[dooray] 시도: ${serverUrl} / ${cred.label} (user: ${cred.user.slice(0, 8)}...)`
+          );
 
-    // 캘린더 목록 조회
-    const calendars = await this.davClient.fetchCalendars();
-    console.log(
-      `[dooray] 캘린더 ${calendars.length}개 발견:`,
-      calendars.map((c: any) => c.displayName ?? c.url).join(", ")
-    );
+          const client = new DAVClient({
+            serverUrl,
+            credentials: {
+              username: cred.user,
+              password: cred.pass,
+            },
+            authMethod: "Basic",
+            defaultAccountType: "caldav",
+          });
 
-    // 이름으로 캘린더 찾기
-    if (this.config.calendarName) {
-      const target = calendars.find(
-        (cal: any) =>
-          cal.displayName?.toLowerCase() ===
-          this.config.calendarName!.toLowerCase()
-      );
-      if (target) {
-        this.calendarUrl = target.url;
-        console.log(
-          `[dooray] 캘린더 선택: "${this.config.calendarName}" → ${target.url}`
-        );
+          await client.login();
+          console.log(`[dooray] CalDAV 로그인 성공! (${cred.label} @ ${serverUrl})`);
+
+          // 캘린더 목록 조회
+          const calendars = await client.fetchCalendars();
+          console.log(
+            `[dooray] 캘린더 ${calendars.length}개 발견:`,
+            calendars.map((c: any) => c.displayName ?? c.url).join(", ")
+          );
+
+          if (calendars.length === 0) {
+            console.log(`[dooray] 캘린더가 없어서 다음 조합 시도...`);
+            continue;
+          }
+
+          this.davClient = client;
+
+          // 이름으로 캘린더 찾기
+          if (this.config.calendarName) {
+            const target = calendars.find(
+              (cal: any) =>
+                cal.displayName?.toLowerCase() ===
+                this.config.calendarName!.toLowerCase()
+            );
+            if (target) {
+              this.calendarUrl = target.url;
+              console.log(
+                `[dooray] 캘린더 선택: "${this.config.calendarName}" → ${target.url}`
+              );
+            }
+          }
+
+          // 이름으로 못 찾으면 첫 번째 캘린더
+          if (!this.calendarUrl) {
+            this.calendarUrl = calendars[0].url;
+            console.log(
+              `[dooray] 기본 캘린더 사용: "${calendars[0].displayName}" → ${calendars[0].url}`
+            );
+          }
+
+          return; // 성공!
+        } catch (err) {
+          console.error(
+            `[dooray] 실패: ${serverUrl} / ${cred.label} — ${err}`
+          );
+        }
       }
     }
 
-    // 이름으로 못 찾으면 첫 번째 캘린더
-    if (!this.calendarUrl && calendars.length > 0) {
-      this.calendarUrl = calendars[0].url;
-      console.log(
-        `[dooray] 기본 캘린더 사용: "${calendars[0].displayName}" → ${calendars[0].url}`
-      );
-    }
-
-    if (!this.calendarUrl) {
-      throw new Error("Dooray 캘린더를 찾을 수 없습니다.");
-    }
+    throw new Error(
+      "Dooray CalDAV 로그인 실패: 모든 인증 조합에서 실패했습니다.\n" +
+        "다음을 확인하세요:\n" +
+        "  1. DOORAY_USERNAME (이메일)과 DOORAY_PASSWORD (비밀번호)가 맞는지\n" +
+        "  2. DOORAY_API_TOKEN이 설정되어 있는지 (비밀번호 대신 사용 가능)\n" +
+        "  3. DOORAY_MEMBER_ID가 설정되어 있는지 (이메일 대신 사용 가능)\n" +
+        "  4. Dooray에서 CalDAV 연동이 활성화되어 있는지"
+    );
   }
 
   /**

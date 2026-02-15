@@ -91,6 +91,10 @@ export interface DoorayConfig {
   username: string;
   /** Dooray 비밀번호 */
   password: string;
+  /** Dooray API 토큰 (CalDAV 비밀번호 대체 가능) */
+  apiToken?: string;
+  /** Dooray 멤버 ID (CalDAV 사용자명 대체 가능) */
+  memberId?: string;
   /** 사용할 캘린더 이름 (선택, 미지정시 첫 번째 캘린더) */
   calendarName?: string;
 }
