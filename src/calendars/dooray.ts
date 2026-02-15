@@ -33,6 +33,7 @@ export class DoorayCalendarClient implements CalendarClient {
   readonly name: CalendarSource = "dooray";
 
   private davClient: any; // tsdav.DAVClient
+  private calendarObj: any = null; // tsdav calendar object (전체 객체)
   private calendarUrl: string | null = null;
 
   constructor(private config: DoorayConfig) {
@@ -90,6 +91,7 @@ export class DoorayCalendarClient implements CalendarClient {
           this.config.calendarName!.toLowerCase()
       );
       if (target) {
+        this.calendarObj = target;
         this.calendarUrl = target.url;
         console.log(
           `[dooray] 캘린더 선택: "${this.config.calendarName}" → ${target.url}`
@@ -98,7 +100,8 @@ export class DoorayCalendarClient implements CalendarClient {
     }
 
     // 이름으로 못 찾으면 첫 번째 캘린더
-    if (!this.calendarUrl) {
+    if (!this.calendarObj) {
+      this.calendarObj = calendars[0];
       this.calendarUrl = calendars[0].url;
       console.log(
         `[dooray] 기본 캘린더 사용: "${calendars[0].displayName}" → ${calendars[0].url}`
@@ -113,7 +116,7 @@ export class DoorayCalendarClient implements CalendarClient {
     await this.ensureInitialized();
 
     const calendarObjects = await this.davClient.fetchCalendarObjects({
-      calendar: { url: this.calendarUrl },
+      calendar: this.calendarObj,
       timeRange: {
         start: from,
         end: to,
@@ -142,7 +145,7 @@ export class DoorayCalendarClient implements CalendarClient {
     const icalData = this.toICal(uid, event, visibility);
 
     await this.davClient.createCalendarObject({
-      calendar: { url: this.calendarUrl },
+      calendar: this.calendarObj,
       filename: `${uid}.ics`,
       iCalString: icalData,
     });

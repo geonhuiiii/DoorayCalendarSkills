@@ -17,6 +17,7 @@ export class AppleCalendarClient implements CalendarClient {
   readonly name: CalendarSource = "apple";
 
   private davClient: any; // tsdav.DAVClient
+  private calendarObj: any = null;
   private calendarUrl: string | null = null;
 
   constructor(private config: AppleConfig) {}
@@ -47,16 +48,18 @@ export class AppleCalendarClient implements CalendarClient {
           cal.displayName?.toLowerCase() === this.config.calendarName!.toLowerCase()
       );
       if (target) {
+        this.calendarObj = target;
         this.calendarUrl = target.url;
       }
     }
 
     // 이름으로 못 찾으면 첫 번째 캘린더 사용
-    if (!this.calendarUrl && calendars.length > 0) {
+    if (!this.calendarObj && calendars.length > 0) {
+      this.calendarObj = calendars[0];
       this.calendarUrl = calendars[0].url;
     }
 
-    if (!this.calendarUrl) {
+    if (!this.calendarObj) {
       throw new Error("Apple 캘린더를 찾을 수 없습니다.");
     }
   }
@@ -68,7 +71,7 @@ export class AppleCalendarClient implements CalendarClient {
     await this.ensureInitialized();
 
     const calendarObjects = await this.davClient.fetchCalendarObjects({
-      calendar: { url: this.calendarUrl },
+      calendar: this.calendarObj,
       timeRange: {
         start: from,
         end: to,
@@ -93,7 +96,7 @@ export class AppleCalendarClient implements CalendarClient {
     const icalData = this.toICal(uid, event, visibility);
 
     await this.davClient.createCalendarObject({
-      calendar: { url: this.calendarUrl },
+      calendar: this.calendarObj,
       filename: `${uid}.ics`,
       iCalString: icalData,
     });
