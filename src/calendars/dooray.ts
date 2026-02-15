@@ -257,20 +257,34 @@ export class DoorayCalendarClient implements CalendarClient {
         : `[${calendarName}] ${rawTitle}`;
 
       const startTime = this.parseICalDate(dtStartMatch[1]);
+
+      // 시작 시간이 유효하지 않으면 건너뜀
+      if (!this.isValidDate(startTime)) {
+        console.warn(
+          `[dooray] 유효하지 않은 시작 시간, 건너뜀: "${rawTitle}" (${dtStartMatch[1]})`
+        );
+        return null;
+      }
+
       let endTime = dtEndMatch
         ? this.parseICalDate(dtEndMatch[1])
         : null;
 
-      // endTime이 없거나 startTime과 같으면 기본값 설정
-      if (!endTime || endTime === startTime) {
+      // endTime이 없거나, 파싱 실패거나, startTime과 같으면 기본값 설정
+      if (!endTime || !this.isValidDate(endTime) || endTime === startTime) {
         if (isAllDay) {
           // 종일 이벤트: 다음 날로 설정
-          const d = new Date(startTime);
+          const d = new Date(startTime + "T00:00:00+09:00");
           d.setDate(d.getDate() + 1);
-          endTime = d.toISOString().split("T")[0];
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          endTime = `${y}-${m}-${day}`;
         } else {
           // 시간 이벤트: 1시간 후로 설정
-          const d = new Date(startTime);
+          const d = new Date(
+            startTime.endsWith("Z") ? startTime : startTime + "+09:00"
+          );
           d.setTime(d.getTime() + 60 * 60 * 1000);
           endTime = d.toISOString();
         }
@@ -301,16 +315,32 @@ export class DoorayCalendarClient implements CalendarClient {
   /** iCal 날짜 → ISO 8601 */
   private parseICalDate(icalDate: string): string {
     const cleaned = icalDate.trim();
-    if (cleaned.length === 8) {
-      return `${cleaned.slice(0, 4)}-${cleaned.slice(4, 6)}-${cleaned.slice(6, 8)}`;
+
+    // 순수 숫자만 추출 (Z 제외)
+    const digits = cleaned.replace(/[^0-9]/g, "");
+
+    // 종일 이벤트: 20260215 → 2026-02-15
+    if (digits.length === 8) {
+      return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
     }
-    if (cleaned.length >= 15) {
-      const date = `${cleaned.slice(0, 4)}-${cleaned.slice(4, 6)}-${cleaned.slice(6, 8)}`;
-      const time = `${cleaned.slice(9, 11)}:${cleaned.slice(11, 13)}:${cleaned.slice(13, 15)}`;
+
+    // 시간 이벤트: 20260215T100000Z → 2026-02-15T10:00:00Z
+    if (digits.length >= 14) {
+      const date = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+      const time = `${digits.slice(8, 10)}:${digits.slice(10, 12)}:${digits.slice(12, 14)}`;
       const tz = cleaned.endsWith("Z") ? "Z" : "";
       return `${date}T${time}${tz}`;
     }
+
+    // 그 외: 가능한 한 ISO 형태로 반환
+    console.warn(`[dooray] 예상치 못한 날짜 형식: "${icalDate}"`);
     return cleaned;
+  }
+
+  /** 날짜 문자열이 유효한지 확인 (1970년 방지) */
+  private isValidDate(dateStr: string): boolean {
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime()) && d.getFullYear() >= 2000;
   }
 
   /** ISO 8601 → iCal 포맷 */
