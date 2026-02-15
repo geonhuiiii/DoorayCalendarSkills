@@ -175,6 +175,7 @@ export class AppleCalendarClient implements CalendarClient {
       return {
         sourceId: uidMatch?.[1]?.trim() ?? obj.url ?? "",
         source: "apple",
+        isOwnCalendar: true, // Apple 캘린더는 항상 내 캘린더
         title: summaryMatch?.[1]?.trim() ?? "",
         description: descMatch?.[1]?.trim() ?? "",
         location: locationMatch?.[1]?.trim() ?? "",
@@ -273,6 +274,15 @@ export class AppleCalendarClient implements CalendarClient {
 
     if (event.recurrence) {
       ical.push(`RRULE:${event.recurrence}`);
+    }
+
+    // 다른 사람/공유 캘린더 일정은 알람 없이 생성
+    // 내 캘린더 일정이면 기본 알람 사용 (VALARM 미포함 = 캘린더 기본 설정 따름)
+    // 다른 사람 일정이면 명시적으로 알람 없음 표시
+    if (event.isOwnCalendar === false) {
+      // VALARM 없이 = 알림 없음 (CalDAV에서는 VALARM 블록 자체를 생략하면 알람 없음)
+      // 일부 클라이언트가 기본 알람을 추가할 수 있으므로 명시적으로 제거
+      ical.push("X-APPLE-DEFAULT-ALARM:FALSE");
     }
 
     ical.push("END:VEVENT", "END:VCALENDAR");

@@ -33,7 +33,9 @@ export class DoorayCalendarClient implements CalendarClient {
   readonly name: CalendarSource = "dooray";
 
   private davClient: any; // tsdav.DAVClient
-  private calendarObj: any = null; // tsdav calendar object (전체 객체)
+  private allCalendars: any[] = []; // 모든 캘린더 객체
+  private primaryCalendarName: string | null = null; // 내 캘린더 이름
+  private calendarObj: any = null; // 쓰기용 기본 캘린더
   private calendarUrl: string | null = null;
 
   constructor(private config: DoorayConfig) {
@@ -82,8 +84,9 @@ export class DoorayCalendarClient implements CalendarClient {
     }
 
     this.davClient = client;
+    this.allCalendars = calendars;
 
-    // 이름으로 캘린더 찾기
+    // 내 캘린더 (쓰기용) 결정 — 첫 번째 캘린더가 기본적으로 내 캘린더
     if (this.config.calendarName) {
       const target = calendars.find(
         (cal: any) =>
@@ -93,50 +96,72 @@ export class DoorayCalendarClient implements CalendarClient {
       if (target) {
         this.calendarObj = target;
         this.calendarUrl = target.url;
+        this.primaryCalendarName = String(target.displayName ?? "");
         console.log(
-          `[dooray] 캘린더 선택: "${this.config.calendarName}" → ${target.url}`
+          `[dooray] 내 캘린더: "${target.displayName}" → ${target.url}`
         );
       }
     }
 
-    // 이름으로 못 찾으면 첫 번째 캘린더
     if (!this.calendarObj) {
       this.calendarObj = calendars[0];
       this.calendarUrl = calendars[0].url;
+      this.primaryCalendarName = String(calendars[0].displayName ?? "");
       console.log(
-        `[dooray] 기본 캘린더 사용: "${calendars[0].displayName}" → ${calendars[0].url}`
+        `[dooray] 내 캘린더: "${calendars[0].displayName}" → ${calendars[0].url}`
       );
     }
+
+    console.log(
+      `[dooray] 전체 ${calendars.length}개 캘린더에서 일정을 가져옵니다`
+    );
   }
 
   /**
-   * Dooray 캘린더에서 지정 기간의 이벤트를 조회합니다.
+   * Dooray의 **모든** 캘린더(내 캘린더 + 공유 캘린더)에서
+   * 지정 기간의 이벤트를 조회합니다.
    *
-   * tsdav의 timeRange 필터가 Dooray CalDAV와 호환되지 않을 수 있으므로,
-   * 전체 객체를 가져온 후 직접 날짜 필터링합니다.
+   * 다른 사람/공유 캘린더 이벤트에는 isOwnCalendar=false가 설정됩니다.
    */
   async getEvents(from: string, to: string): Promise<CalendarEvent[]> {
     await this.ensureInitialized();
 
-    // timeRange 없이 전체 캘린더 객체를 가져옴 (Dooray 호환성)
-    const calendarObjects = await this.davClient.fetchCalendarObjects({
-      calendar: this.calendarObj,
-    });
-
-    console.log(`[dooray] ${calendarObjects.length}개 CalDAV 객체 조회됨`);
-
     const fromTime = new Date(from).getTime();
     const toTime = new Date(to).getTime();
+    const allEvents: CalendarEvent[] = [];
 
-    return calendarObjects
-      .map((obj: any) => this.parseICalToEvent(obj))
-      .filter((evt: CalendarEvent | null): evt is CalendarEvent => {
-        if (!evt) return false;
-        // 날짜 범위 필터링
-        const eventStart = new Date(evt.startTime).getTime();
-        const eventEnd = new Date(evt.endTime).getTime();
-        return eventEnd >= fromTime && eventStart <= toTime;
-      });
+    for (const cal of this.allCalendars) {
+      const calName = cal.displayName ?? cal.url;
+      const isOwn =
+        this.primaryCalendarName != null &&
+        calName === this.primaryCalendarName;
+
+      try {
+        const calendarObjects = await this.davClient.fetchCalendarObjects({
+          calendar: cal,
+        });
+
+        console.log(
+          `[dooray] 캘린더 "${calName}": ${calendarObjects.length}개 객체 ${isOwn ? "(내 캘린더)" : "(공유)"}`
+        );
+
+        const events = calendarObjects
+          .map((obj: any) => this.parseICalToEvent(obj, calName, isOwn))
+          .filter((evt: CalendarEvent | null): evt is CalendarEvent => {
+            if (!evt) return false;
+            const eventStart = new Date(evt.startTime).getTime();
+            const eventEnd = new Date(evt.endTime).getTime();
+            return eventEnd >= fromTime && eventStart <= toTime;
+          });
+
+        allEvents.push(...events);
+      } catch (err) {
+        console.error(`[dooray] 캘린더 "${calName}" 조회 실패:`, err);
+      }
+    }
+
+    console.log(`[dooray] 총 ${allEvents.length}개 이벤트 (전체 캘린더)`);
+    return allEvents;
   }
 
   /**
@@ -199,7 +224,11 @@ export class DoorayCalendarClient implements CalendarClient {
   // ────────────────────────────────────────────
 
   /** iCal 객체를 CalendarEvent로 파싱 */
-  private parseICalToEvent(obj: any): CalendarEvent | null {
+  private parseICalToEvent(
+    obj: any,
+    calendarName: string,
+    isOwnCalendar: boolean
+  ): CalendarEvent | null {
     try {
       const data = obj.data;
       if (!data) return null;
@@ -220,11 +249,19 @@ export class DoorayCalendarClient implements CalendarClient {
       if (!dtStartMatch) return null;
 
       const isAllDay = !dtStartMatch[1].includes("T");
+      const rawTitle = summaryMatch?.[1]?.trim() ?? "";
+
+      // 공유 캘린더인 경우 제목 앞에 캘린더 이름 표시
+      const title = isOwnCalendar
+        ? rawTitle
+        : `[${calendarName}] ${rawTitle}`;
 
       return {
         sourceId: uidMatch?.[1]?.trim() ?? obj.url ?? "",
         source: "dooray",
-        title: summaryMatch?.[1]?.trim() ?? "",
+        sourceCalendarName: calendarName,
+        isOwnCalendar,
+        title,
         description: descMatch?.[1]?.trim() ?? "",
         location: locationMatch?.[1]?.trim() ?? "",
         startTime: this.parseICalDate(dtStartMatch[1]),

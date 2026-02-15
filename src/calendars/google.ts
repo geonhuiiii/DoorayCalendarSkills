@@ -129,6 +129,7 @@ export class GoogleCalendarClient implements CalendarClient {
     return {
       sourceId: item.id,
       source: "google",
+      isOwnCalendar: true, // Google 캘린더는 항상 내 캘린더
       title: item.summary ?? "",
       description: item.description ?? "",
       location: item.location ?? "",
@@ -178,6 +179,14 @@ export class GoogleCalendarClient implements CalendarClient {
     // 비공개일 때 다른 사람에게 "바쁨"으로만 표시
     if (visibility === "private") {
       body.transparency = "opaque"; // "바쁨" 표시
+    }
+
+    // 다른 사람/공유 캘린더의 일정은 알람(리마인더) 제거
+    if (event.isOwnCalendar === false) {
+      body.reminders = {
+        useDefault: false,
+        overrides: [], // 알람 없음
+      };
     }
 
     return body;

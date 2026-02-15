@@ -14,6 +14,10 @@ export interface CalendarEvent {
   sourceId: string;
   /** 이벤트가 속한 원본 캘린더 */
   source: CalendarSource;
+  /** 원본 캘린더 이름 (예: "이건희", "MAIK(공통일정,회의실사용)") */
+  sourceCalendarName?: string;
+  /** 내 캘린더인지 여부 (false면 다른 사람/공유 캘린더) */
+  isOwnCalendar: boolean;
   /** 이벤트 제목 */
   title: string;
   /** 이벤트 설명 */
