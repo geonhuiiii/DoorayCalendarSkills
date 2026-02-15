@@ -70,17 +70,22 @@ export class AppleCalendarClient implements CalendarClient {
   async getEvents(from: string, to: string): Promise<CalendarEvent[]> {
     await this.ensureInitialized();
 
+    // timeRange 없이 전체 객체를 가져옴 (CalDAV 서버 호환성)
     const calendarObjects = await this.davClient.fetchCalendarObjects({
       calendar: this.calendarObj,
-      timeRange: {
-        start: from,
-        end: to,
-      },
     });
+
+    const fromTime = new Date(from).getTime();
+    const toTime = new Date(to).getTime();
 
     return calendarObjects
       .map((obj: any) => this.parseICalToEvent(obj))
-      .filter((evt: CalendarEvent | null): evt is CalendarEvent => evt !== null);
+      .filter((evt: CalendarEvent | null): evt is CalendarEvent => {
+        if (!evt) return false;
+        const eventStart = new Date(evt.startTime).getTime();
+        const eventEnd = new Date(evt.endTime).getTime();
+        return eventEnd >= fromTime && eventStart <= toTime;
+      });
   }
 
   /**

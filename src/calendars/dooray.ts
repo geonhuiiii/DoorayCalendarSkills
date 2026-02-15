@@ -111,25 +111,32 @@ export class DoorayCalendarClient implements CalendarClient {
 
   /**
    * Dooray 캘린더에서 지정 기간의 이벤트를 조회합니다.
+   *
+   * tsdav의 timeRange 필터가 Dooray CalDAV와 호환되지 않을 수 있으므로,
+   * 전체 객체를 가져온 후 직접 날짜 필터링합니다.
    */
   async getEvents(from: string, to: string): Promise<CalendarEvent[]> {
     await this.ensureInitialized();
 
+    // timeRange 없이 전체 캘린더 객체를 가져옴 (Dooray 호환성)
     const calendarObjects = await this.davClient.fetchCalendarObjects({
       calendar: this.calendarObj,
-      timeRange: {
-        start: from,
-        end: to,
-      },
     });
 
     console.log(`[dooray] ${calendarObjects.length}개 CalDAV 객체 조회됨`);
 
+    const fromTime = new Date(from).getTime();
+    const toTime = new Date(to).getTime();
+
     return calendarObjects
       .map((obj: any) => this.parseICalToEvent(obj))
-      .filter(
-        (evt: CalendarEvent | null): evt is CalendarEvent => evt !== null
-      );
+      .filter((evt: CalendarEvent | null): evt is CalendarEvent => {
+        if (!evt) return false;
+        // 날짜 범위 필터링
+        const eventStart = new Date(evt.startTime).getTime();
+        const eventEnd = new Date(evt.endTime).getTime();
+        return eventEnd >= fromTime && eventStart <= toTime;
+      });
   }
 
   /**
