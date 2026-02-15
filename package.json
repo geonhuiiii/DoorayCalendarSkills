@@ -19,10 +19,14 @@
     "uuid": "^10.0.0"
   },
   "openclaw": {
-    "extensions": {
-      "type": "provider",
-      "entry": "./dist/index.js"
-    }
+    "extensions": [
+      {
+        "id": "dooray-calendar-sync",
+        "type": "skill",
+        "entry": "./dist/index.js",
+        "manifest": "./openclaw.plugin.json"
+      }
+    ]
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
