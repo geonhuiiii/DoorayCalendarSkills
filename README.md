@@ -53,12 +53,15 @@ cp env.example .env
 
 ### Dooray (필수)
 
-Dooray 로그인 계정 정보를 입력합니다. CalDAV(`caldav.dooray.com`)를 통해 캘린더에 접근합니다.
+Dooray CalDAV를 통해 캘린더에 접근합니다. 공공기관(`gov-dooray`)과 일반(`dooray`) 모두 자동 감지됩니다.
+
+> **중요**: 비밀번호는 **Dooray 로그인 비밀번호가 아닙니다!**
+> Dooray → 캘린더 → CalDAV 설정 페이지에서 발급된 **CalDAV 전용 비밀번호**를 입력하세요.
 
 ```
 DOORAY_TENANT_ID=your-tenant-id
 DOORAY_USERNAME=your-dooray-email@example.com
-DOORAY_PASSWORD=your-dooray-password
+DOORAY_PASSWORD=your-caldav-password   # Dooray CalDAV 설정에서 발급
 DOORAY_CALENDAR_NAME=              # 선택: 특정 캘린더 이름 지정
 ```
 

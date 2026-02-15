@@ -31,9 +31,11 @@ export class DoorayCalendarClient implements CalendarClient {
 
     const { DAVClient } = await import("tsdav");
 
-    // 여러 서버 URL 후보
+    // 여러 서버 URL 후보 (gov-dooray를 먼저 시도 — 공공기관용)
     const serverUrls = [
+      "https://caldav.gov-dooray.com",
       "https://caldav.dooray.com",
+      `https://caldav.gov-dooray.com/${this.config.tenantId}`,
       `https://caldav.dooray.com/${this.config.tenantId}`,
     ];
 
