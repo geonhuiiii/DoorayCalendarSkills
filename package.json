@@ -20,12 +20,7 @@
   },
   "openclaw": {
     "extensions": [
-      {
-        "id": "dooray-calendar-sync",
-        "type": "skill",
-        "entry": "./dist/index.js",
-        "manifest": "./openclaw.plugin.json"
-      }
+      "./dist/index.js"
     ]
   },
   "devDependencies": {
