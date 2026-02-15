@@ -9,10 +9,12 @@
       "dooray": {
         "type": "object",
         "properties": {
-          "apiToken": { "type": "string", "description": "Dooray API 토큰" },
-          "tenantId": { "type": "string", "description": "Dooray 테넌트(조직) ID" }
+          "tenantId": { "type": "string", "description": "Dooray 테넌트 ID (예: opop757)" },
+          "username": { "type": "string", "description": "Dooray 로그인 이메일" },
+          "password": { "type": "string", "description": "Dooray 비밀번호" },
+          "calendarName": { "type": "string", "description": "사용할 캘린더 이름 (선택)" }
         },
-        "required": ["apiToken", "tenantId"]
+        "required": ["tenantId", "username", "password"]
       },
       "google": {
         "type": "object",

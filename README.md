@@ -53,11 +53,13 @@ cp env.example .env
 
 ### Dooray (필수)
 
-Dooray 관리자 페이지에서 API 토큰을 발급받습니다.
+Dooray 로그인 계정 정보를 입력합니다. CalDAV(`caldav.dooray.com`)를 통해 캘린더에 접근합니다.
 
 ```
-DOORAY_API_TOKEN=your-dooray-api-token
 DOORAY_TENANT_ID=your-tenant-id
+DOORAY_USERNAME=your-dooray-email@example.com
+DOORAY_PASSWORD=your-dooray-password
+DOORAY_CALENDAR_NAME=              # 선택: 특정 캘린더 이름 지정
 ```
 
 ### Google Calendar (선택)

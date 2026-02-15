@@ -124,8 +124,10 @@ if (require.main === module) {
   // 환경 변수에서 설정 읽기
   const config: PluginConfig = {
     dooray: {
-      apiToken: process.env.DOORAY_API_TOKEN ?? "",
       tenantId: process.env.DOORAY_TENANT_ID ?? "",
+      username: process.env.DOORAY_USERNAME ?? "",
+      password: process.env.DOORAY_PASSWORD ?? "",
+      calendarName: process.env.DOORAY_CALENDAR_NAME,
     },
     google: process.env.GOOGLE_CLIENT_ID
       ? {

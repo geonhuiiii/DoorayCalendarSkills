@@ -85,8 +85,14 @@ export interface CalendarClient {
 
 /** Dooray 설정 */
 export interface DoorayConfig {
-  apiToken: string;
+  /** Dooray 테넌트 ID (예: opop757) */
   tenantId: string;
+  /** Dooray 로그인 이메일 */
+  username: string;
+  /** Dooray 비밀번호 */
+  password: string;
+  /** 사용할 캘린더 이름 (선택, 미지정시 첫 번째 캘린더) */
+  calendarName?: string;
 }
 
 /** Google Calendar 설정 */
