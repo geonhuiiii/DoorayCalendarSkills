@@ -39,7 +39,8 @@ Dooray, Apple, Google 캘린더를 통합 동기화하는 OpenClaw 스킬입니�
 ```bash
 git clone https://github.com/geonhuiiii/DoorayCalendarSkills.git
 cd DoorayCalendarSkills
-npm install
+npm install       # 의존성 설치 (반드시 먼저 실행)
+npm run build     # TypeScript 빌드
 ```
 
 ## 설정
