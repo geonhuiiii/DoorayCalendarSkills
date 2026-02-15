@@ -256,6 +256,26 @@ export class DoorayCalendarClient implements CalendarClient {
         ? rawTitle
         : `[${calendarName}] ${rawTitle}`;
 
+      const startTime = this.parseICalDate(dtStartMatch[1]);
+      let endTime = dtEndMatch
+        ? this.parseICalDate(dtEndMatch[1])
+        : null;
+
+      // endTime이 없거나 startTime과 같으면 기본값 설정
+      if (!endTime || endTime === startTime) {
+        if (isAllDay) {
+          // 종일 이벤트: 다음 날로 설정
+          const d = new Date(startTime);
+          d.setDate(d.getDate() + 1);
+          endTime = d.toISOString().split("T")[0];
+        } else {
+          // 시간 이벤트: 1시간 후로 설정
+          const d = new Date(startTime);
+          d.setTime(d.getTime() + 60 * 60 * 1000);
+          endTime = d.toISOString();
+        }
+      }
+
       return {
         sourceId: uidMatch?.[1]?.trim() ?? obj.url ?? "",
         source: "dooray",
@@ -264,10 +284,8 @@ export class DoorayCalendarClient implements CalendarClient {
         title,
         description: descMatch?.[1]?.trim() ?? "",
         location: locationMatch?.[1]?.trim() ?? "",
-        startTime: this.parseICalDate(dtStartMatch[1]),
-        endTime: dtEndMatch
-          ? this.parseICalDate(dtEndMatch[1])
-          : this.parseICalDate(dtStartMatch[1]),
+        startTime,
+        endTime,
         isAllDay,
         // Dooray 일정은 다른 캘린더에 공개로 동기화
         visibility: "public",

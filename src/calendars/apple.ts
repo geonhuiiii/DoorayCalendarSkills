@@ -172,6 +172,24 @@ export class AppleCalendarClient implements CalendarClient {
 
       const isAllDay = !dtStartMatch[1].includes("T");
 
+      const startTime = this.parseICalDate(dtStartMatch[1]);
+      let endTime = dtEndMatch
+        ? this.parseICalDate(dtEndMatch[1])
+        : null;
+
+      // endTime이 없거나 startTime과 같으면 기본값 설정
+      if (!endTime || endTime === startTime) {
+        if (isAllDay) {
+          const d = new Date(startTime);
+          d.setDate(d.getDate() + 1);
+          endTime = d.toISOString().split("T")[0];
+        } else {
+          const d = new Date(startTime);
+          d.setTime(d.getTime() + 60 * 60 * 1000);
+          endTime = d.toISOString();
+        }
+      }
+
       return {
         sourceId: uidMatch?.[1]?.trim() ?? obj.url ?? "",
         source: "apple",
@@ -179,10 +197,8 @@ export class AppleCalendarClient implements CalendarClient {
         title: summaryMatch?.[1]?.trim() ?? "",
         description: descMatch?.[1]?.trim() ?? "",
         location: locationMatch?.[1]?.trim() ?? "",
-        startTime: this.parseICalDate(dtStartMatch[1]),
-        endTime: dtEndMatch
-          ? this.parseICalDate(dtEndMatch[1])
-          : this.parseICalDate(dtStartMatch[1]),
+        startTime,
+        endTime,
         isAllDay,
         // Apple 캘린더 일정은 다른 캘린더로 동기화 시 비공개
         visibility: "private",
