@@ -1,0 +1,44 @@
+{
+  "id": "dooray-calendar-sync",
+  "version": "1.0.0",
+  "description": "Dooray·Apple·Google 캘린더 통합 동기화 스킬. Dooray 일정은 모든 캘린더에 공개로, 개인 캘린더 일정은 비공개로 동기화합니다.",
+  "skills": ["src/skills"],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "dooray": {
+        "type": "object",
+        "properties": {
+          "apiToken": { "type": "string", "description": "Dooray API 토큰" },
+          "tenantId": { "type": "string", "description": "Dooray 테넌트(조직) ID" }
+        },
+        "required": ["apiToken", "tenantId"]
+      },
+      "google": {
+        "type": "object",
+        "properties": {
+          "clientId": { "type": "string" },
+          "clientSecret": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "calendarId": { "type": "string", "default": "primary" }
+        },
+        "required": ["clientId", "clientSecret", "refreshToken"]
+      },
+      "apple": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string", "description": "Apple ID 이메일" },
+          "appSpecificPassword": { "type": "string", "description": "Apple 앱 전용 비밀번호" },
+          "calendarName": { "type": "string", "description": "사용할 Apple 캘린더 이름" }
+        },
+        "required": ["username", "appSpecificPassword"]
+      },
+      "syncIntervalMinutes": {
+        "type": "number",
+        "default": 15,
+        "description": "동기화 간격 (분)"
+      }
+    },
+    "required": ["dooray"]
+  }
+}

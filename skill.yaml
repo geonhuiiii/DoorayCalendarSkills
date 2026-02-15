@@ -1,0 +1,20 @@
+name: dooray-calendar-sync
+description: |
+  Dooray·Apple·Google 캘린더를 동기화하는 OpenClaw 스킬입니다.
+  - Dooray 캘린더 일정 → Apple/Google 캘린더에 공개 일정으로 동기화
+  - Apple/Google 캘린더 일정 → Dooray 및 다른 캘린더에 비공개(나만 보기) 일정으로 동기화
+version: 1.0.0
+
+triggers:
+  - type: schedule
+    cron: "*/15 * * * *"   # 15분마다 동기화
+  - type: command
+    command: /calendar-sync
+    description: "수동으로 캘린더 동기화 실행"
+  - type: command
+    command: /calendar-status
+    description: "캘린더 동기화 상태 확인"
+
+permissions:
+  - network      # 외부 API 호출
+  - storage      # 동기화 상태 저장
