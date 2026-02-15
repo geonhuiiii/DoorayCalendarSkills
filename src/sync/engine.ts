@@ -51,8 +51,21 @@ export class SyncEngine {
     for (const [source, client] of this.clients) {
       try {
         const events = await client.getEvents(from, to);
-        allEvents.set(source, events);
-        console.log(`[${source}] ${events.length}개 이벤트 조회 완료`);
+
+        // 동기화로 생성된 이벤트는 제외 (무한 증식 방지)
+        const syncedIds = this.store.getSyncedTargetIds(source);
+        const originalEvents = events.filter((e) => {
+          if (syncedIds.has(e.sourceId)) {
+            return false; // 이 이벤트는 우리가 다른 캘린더에서 동기화해온 것 → 건너뜀
+          }
+          return true;
+        });
+
+        const skipped = events.length - originalEvents.length;
+        allEvents.set(source, originalEvents);
+        console.log(
+          `[${source}] ${originalEvents.length}개 원본 이벤트 조회 (동기화 이벤트 ${skipped}개 제외)`
+        );
       } catch (err) {
         console.error(`[${source}] 이벤트 조회 실패:`, err);
         totalResult.errors.push({

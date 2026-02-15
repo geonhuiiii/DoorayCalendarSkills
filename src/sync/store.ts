@@ -91,6 +91,27 @@ export class SyncStore {
     this.save();
   }
 
+  /**
+   * 이 이벤트가 동기화로 생성된 것인지 확인
+   * (어떤 캘린더의 targetId로 등록되어 있으면 = 우리가 만든 것)
+   */
+  isSyncedEvent(eventId: string, calendar: CalendarSource): boolean {
+    return this.mappings.some(
+      (m) => m.targetId === eventId && m.target === calendar
+    );
+  }
+
+  /** 동기화로 생성된 모든 targetId 집합 반환 */
+  getSyncedTargetIds(calendar: CalendarSource): Set<string> {
+    const ids = new Set<string>();
+    for (const m of this.mappings) {
+      if (m.target === calendar) {
+        ids.add(m.targetId);
+      }
+    }
+    return ids;
+  }
+
   /** 전체 매핑 수 */
   get count(): number {
     return this.mappings.length;

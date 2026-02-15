@@ -186,21 +186,14 @@ export class AppleCalendarClient implements CalendarClient {
         ? this.parseICalDate(dtEndMatch[1])
         : null;
 
-      // endTime이 없거나, 파싱 실패거나, startTime과 같으면 기본값 설정
-      if (!endTime || !this.isValidDate(endTime) || endTime === startTime) {
+      // endTime이 없거나 파싱 실패하면 → 그날 하루짜리
+      if (!endTime || !this.isValidDate(endTime)) {
         if (isAllDay) {
-          const d = new Date(startTime + "T00:00:00+09:00");
-          d.setDate(d.getDate() + 1);
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, "0");
-          const day = String(d.getDate()).padStart(2, "0");
-          endTime = `${y}-${m}-${day}`;
+          const parts = startTime.split("-").map(Number);
+          const d = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+          endTime = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         } else {
-          const d = new Date(
-            startTime.endsWith("Z") ? startTime : startTime + "+09:00"
-          );
-          d.setTime(d.getTime() + 60 * 60 * 1000);
-          endTime = d.toISOString();
+          endTime = startTime;
         }
       }
 

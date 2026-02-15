@@ -270,23 +270,17 @@ export class DoorayCalendarClient implements CalendarClient {
         ? this.parseICalDate(dtEndMatch[1])
         : null;
 
-      // endTime이 없거나, 파싱 실패거나, startTime과 같으면 기본값 설정
-      if (!endTime || !this.isValidDate(endTime) || endTime === startTime) {
+      // endTime이 없거나 파싱 실패하면 → 그날 하루짜리
+      if (!endTime || !this.isValidDate(endTime)) {
         if (isAllDay) {
-          // 종일 이벤트: 다음 날로 설정
-          const d = new Date(startTime + "T00:00:00+09:00");
-          d.setDate(d.getDate() + 1);
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, "0");
-          const day = String(d.getDate()).padStart(2, "0");
-          endTime = `${y}-${m}-${day}`;
+          // 종일: iCal 스펙상 DTEND는 "다음날"이어야 하루짜리
+          // startTime = "2026-02-15" → endTime = "2026-02-16"
+          const parts = startTime.split("-").map(Number);
+          const d = new Date(parts[0], parts[1] - 1, parts[2] + 1);
+          endTime = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         } else {
-          // 시간 이벤트: 1시간 후로 설정
-          const d = new Date(
-            startTime.endsWith("Z") ? startTime : startTime + "+09:00"
-          );
-          d.setTime(d.getTime() + 60 * 60 * 1000);
-          endTime = d.toISOString();
+          // 시간 이벤트: 1시간짜리
+          endTime = startTime; // 최소한 startTime과 동일
         }
       }
 
