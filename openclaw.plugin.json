@@ -1,39 +1,39 @@
 {
   "id": "openclaw-dooray-calendar-sync",
   "version": "1.0.0",
-  "description": "Dooray·Apple·Google 캘린더 통합 동기화 스킬. Dooray 일정은 모든 캘린더에 공개로, 개인 캘린더 일정은 비공개로 동기화합니다.",
-  "skills": ["src/skills"],
+  "description": "Dooray·Apple·Google 캘린더 통합 동기화 스킬",
   "configSchema": {
     "type": "object",
     "properties": {
       "dooray": {
         "type": "object",
+        "description": "Dooray 캘린더 설정",
         "properties": {
-          "tenantId": { "type": "string", "description": "Dooray 테넌트 ID (Dooray URL의 서브도메인)" },
+          "tenantId": { "type": "string", "description": "Dooray 테넌트 ID" },
           "username": { "type": "string", "description": "Dooray 로그인 이메일" },
-          "password": { "type": "string", "description": "Dooray 비밀번호" },
-          "calendarName": { "type": "string", "description": "사용할 캘린더 이름 (선택)" }
+          "password": { "type": "string", "description": "Dooray 비밀번호" }
         },
-        "required": ["tenantId", "username", "password"]
+        "required": []
       },
       "google": {
         "type": "object",
+        "description": "Google 캘린더 설정 (선택)",
         "properties": {
           "clientId": { "type": "string" },
           "clientSecret": { "type": "string" },
           "refreshToken": { "type": "string" },
           "calendarId": { "type": "string", "default": "primary" }
         },
-        "required": ["clientId", "clientSecret", "refreshToken"]
+        "required": []
       },
       "apple": {
         "type": "object",
+        "description": "Apple 캘린더 설정 (선택)",
         "properties": {
-          "username": { "type": "string", "description": "Apple ID 이메일" },
-          "appSpecificPassword": { "type": "string", "description": "Apple 앱 전용 비밀번호" },
-          "calendarName": { "type": "string", "description": "사용할 Apple 캘린더 이름" }
+          "username": { "type": "string" },
+          "appSpecificPassword": { "type": "string" }
         },
-        "required": ["username", "appSpecificPassword"]
+        "required": []
       },
       "syncIntervalMinutes": {
         "type": "number",
@@ -41,6 +41,6 @@
         "description": "동기화 간격 (분)"
       }
     },
-    "required": ["dooray"]
+    "required": []
   }
 }

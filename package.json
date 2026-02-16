@@ -2,7 +2,7 @@
   "name": "openclaw-dooray-calendar-sync",
   "version": "1.0.0",
   "description": "OpenClaw skill for syncing Dooray, Apple, and Google calendars",
-  "main": "dist/index.js",
+  "main": "index.js",
   "scripts": {
     "build": "npm install && tsc",
     "dev": "ts-node src/index.ts",
@@ -20,7 +20,7 @@
   },
   "openclaw": {
     "extensions": [
-      "./dist/index.js"
+      "./index.js"
     ]
   },
   "devDependencies": {
